@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace backend.Models
@@ -21,14 +21,12 @@ namespace backend.Models
 
         [Required(ErrorMessage = "Es obligatorio especificar si el producto está disponible.")]
         public bool IsAvailable { get; set; }
+        [Required(ErrorMessage = "La imagen es obligatoria.")]
+        public string Image { get; set; } = null!;
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime UpdatedAt { get; set; } = DateTime.Now;
 
 
-        /* // Clave foránea a la categoría
-        [Required(ErrorMessage = "La categoría es obligatoria.")]
-        public int CategoryId { get; set; }
-
-        [ForeignKey("CategoryId")]
-        public required Category Category { get; set; } */
         [Required(ErrorMessage = "La categoría es obligatoria.")]
         public int CategoryId { get; set; }
         public Category Category { get; set; } = null!; // Relación muchos a uno con Category
