@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace backend.Dtos
 {
@@ -25,6 +24,8 @@ namespace backend.Dtos
 
         [Required(ErrorMessage = "La categoría es obligatoria.")]
         public int CategoryId { get; set; }
+        [Required(ErrorMessage = "La imagen es obligatoria.")]
+        public string Image { get; set; } = null!;
     }
 
 }

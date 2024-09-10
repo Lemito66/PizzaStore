@@ -21,48 +21,73 @@ namespace backend.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ProductDto>>> GetProducts()
         {
-            // Consulta a la base de datos con el modelo Product
-            var products = await _context.Products.ToListAsync();
-
-            // Mapea los productos a ProductDto antes de devolverlos
-            var productDtos = products.Select(p => new ProductDto
+            try
             {
-                Id = p.Id,
-                Name = p.Name,
-                Description = p.Description,
-                Price = p.Price,
-                IsAvailable = p.IsAvailable,
-                CategoryId = p.CategoryId
-            }).ToList();
+                // Consulta a la base de datos con el modelo Product
+                var products = await _context.Products.ToListAsync();
 
-            return Ok(productDtos);
+                if (products == null || !products.Any())
+                {
+                    return NotFound(new { status = false, message = "No products found" });
+                }
+
+                // Mapea los productos a ProductDto antes de devolverlos
+                var productDtos = products.Select(p => new ProductDto
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Description = p.Description,
+                    Price = p.Price,
+                    IsAvailable = p.IsAvailable,
+                    CategoryId = p.CategoryId,
+                    Image = p.Image
+                }).ToList();
+
+                return Ok(new { status = true, data = productDtos });
+            }
+            catch (Exception ex)
+            {
+                // Manejo de excepciones generales
+                return StatusCode(500, new { status = false, message = "An error occurred while fetching products.", error = ex.Message });
+            }
         }
+
 
         // GET: api/Products/5
         [HttpGet("{id}")]
         public async Task<ActionResult<ProductDto>> GetProduct(int id)
         {
-            // Consulta a la base de datos para encontrar el producto por su ID
-            var product = await _context.Products.FindAsync(id);
-
-            if (product == null)
+            try
             {
-                return NotFound();
+                // Consulta a la base de datos para encontrar el producto por su ID
+                var product = await _context.Products.FindAsync(id);
+
+                if (product == null)
+                {
+                    return NotFound(new { status = false, message = "Product not found" });
+                }
+
+                // Mapea el producto a ProductDto antes de devolverlo
+                var productDto = new ProductDto
+                {
+                    Id = product.Id,
+                    Name = product.Name,
+                    Description = product.Description,
+                    Price = product.Price,
+                    IsAvailable = product.IsAvailable,
+                    CategoryId = product.CategoryId,
+                    Image = product.Image
+                };
+
+                return Ok(new { status = true, data = productDto });
             }
-
-            // Mapea el producto a ProductDto antes de devolverlo
-            var productDto = new ProductDto
+            catch (Exception ex)
             {
-                Id = product.Id,
-                Name = product.Name,
-                Description = product.Description,
-                Price = product.Price,
-                IsAvailable = product.IsAvailable,
-                CategoryId = product.CategoryId
-            };
-
-            return Ok(productDto);
+                // Maneja cualquier excepción inesperada
+                return StatusCode(500, new { status = false, message = "An error occurred while processing your request.", error = ex.Message });
+            }
         }
+
 
         // PUT: api/Products/5
         [HttpPut("{id}")]
@@ -70,13 +95,13 @@ namespace backend.Controllers
         {
             if (id != productDto.Id)
             {
-                return BadRequest();
+                return BadRequest(new { status = false, message = "Product ID mismatch" });
             }
 
             var product = await _context.Products.FindAsync(id);
             if (product == null)
             {
-                return NotFound();
+                return NotFound(new { status = false, message = "Product not found" });
             }
 
             // Mapea ProductDto a Product antes de modificar la entidad en la base de datos
@@ -85,63 +110,87 @@ namespace backend.Controllers
             product.Price = productDto.Price;
             product.IsAvailable = productDto.IsAvailable;
             product.CategoryId = productDto.CategoryId;
+            product.Image = productDto.Image;
 
             _context.Entry(product).State = EntityState.Modified;
 
             try
             {
                 await _context.SaveChangesAsync();
+                return Ok(new { status = true, message = "Product updated successfully" });
             }
             catch (DbUpdateConcurrencyException)
             {
                 if (!ProductExists(id))
                 {
-                    return NotFound();
+                    return NotFound(new { status = false, message = "Product no longer exists" });
                 }
                 else
                 {
-                    throw;
+                    return StatusCode(500, new { status = false, message = "Concurrency error occurred while updating the product" });
                 }
             }
-
-            return NoContent();
+            catch (Exception ex)
+            {
+                // Manejo de cualquier otra excepción inesperada
+                return StatusCode(500, new { status = false, message = "An error occurred while updating the product", error = ex.Message });
+            }
         }
 
         // POST: api/Products
         [HttpPost]
         public async Task<ActionResult<Product>> PostProduct(ProductDto productDto)
         {
-            // Mapea ProductDto a Product antes de agregar la entidad a la base de datos
-            var product = new Product
+            try
             {
-                Name = productDto.Name,
-                Description = productDto.Description,
-                Price = productDto.Price,
-                IsAvailable = productDto.IsAvailable,
-                CategoryId = productDto.CategoryId
-            };
+                // Mapea ProductDto a Product antes de agregar la entidad a la base de datos
+                var product = new Product
+                {
+                    Name = productDto.Name,
+                    Description = productDto.Description,
+                    Price = productDto.Price,
+                    IsAvailable = productDto.IsAvailable,
+                    CategoryId = productDto.CategoryId,
+                    Image = productDto.Image
+                };
 
-            _context.Products.Add(product);
-            await _context.SaveChangesAsync();
+                _context.Products.Add(product);
+                await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetProduct", new { id = product.Id }, product);
+                return CreatedAtAction("GetProduct", new { id = product.Id }, new { status = true, message = "Product created successfully", data = product });
+            }
+            catch (Exception ex)
+            {
+                // Manejo de excepciones
+                return StatusCode(500, new { status = false, message = "An error occurred while creating the product", error = ex.Message });
+            }
         }
+
 
         // DELETE: api/Products/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteProduct(int id)
         {
-            var product = await _context.Products.FindAsync(id);
-            if (product == null)
+            try
             {
-                return NotFound();
+                var product = await _context.Products.FindAsync(id);
+                if (product == null)
+                {
+                    return NotFound(new { status = false, message = "Product not found" });
+                }
+
+                _context.Products.Remove(product);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { status = true, message = "Product deleted successfully" });
             }
-
-            _context.Products.Remove(product);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            catch (Exception ex)
+            {
+                // Manejo de excepciones
+                return StatusCode(500, new { status = false, message = "An error occurred while deleting the product", error = ex.Message });
+            }
         }
+
 
         private bool ProductExists(int id)
         {
