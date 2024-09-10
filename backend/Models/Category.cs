@@ -14,5 +14,7 @@ namespace backend.Models
 
         [MaxLength(200, ErrorMessage = "La descripción no puede superar los 200 caracteres.")]
         public string? Description { get; set; }
+        [Required(ErrorMessage = "La categoría debe tener un producto.")]
+        public ICollection<Product> Products { get; set; } = new List<Product>(); // Relación uno a muchos con Product
     }
 }
